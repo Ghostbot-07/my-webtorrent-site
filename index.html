@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>WebTorrent Streaming</title>
+  <!-- Add Bootstrap CSS -->
+  <link href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/webtorrent/webtorrent.min.js"></script>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background-color: #f0f0f0;
+    }
+    .container {
+      padding: 20px;
+      max-width: 800px;
+      margin: 0 auto;
+    }
+    #loading {
+      display: none;
+    }
+    #video {
+      width: 100%;
+      max-width: 600px;
+      margin-top: 20px;
+      display: none;
+    }
+    #file-select {
+      display: none;
+    }
+  </style>
+</head>
+<body>
+  <div class="container mt-5">
+    <h1 class="text-center">Stream Torrents with WebTorrent</h1>
+    <div class="form-group">
+      <input type="text" id="magnet-link" class="form-control" placeholder="Enter torrent magnet link" />
+    </div>
+    <button class="btn btn-primary" onclick="startStreaming()">Stream</button>
+    <div id="loading" class="mt-3">Loading...</div>
+    <select id="file-select" class="form-control mt-3"></select>
+    <video id="video" controls></video>
+  </div>
+  <!-- Add Bootstrap JS and dependencies -->
+  <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.5.3/dist/umd/popper.min.js"></script>
+  <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+  <script>
+    const client = new WebTorrent();
+
+    function startStreaming() {
+      const magnetLink = document.getElementById('magnet-link').value;
+      const loading = document.getElementById('loading');
+      const fileSelect = document.getElementById('file-select');
+      const video = document.getElementById('video');
+
+      if (!magnetLink) {
+        alert('Please enter a valid magnet link');
+        return;
+      }
+
+      loading.style.display = 'block';
+      fileSelect.style.display = 'none';
+      video.style.display = 'none';
+
+      client.add(magnetLink, function (torrent) {
+        const videoFiles = torrent.files.filter(file => file.name.endsWith('.mp4') || file.name.endsWith('.mkv') || file.name.endsWith('.avi'));
+
+        if (videoFiles.length > 1) {
+          fileSelect.innerHTML = videoFiles.map((file, index) => `<option value="${index}">${file.name}</option>`).join('');
+          fileSelect.style.display = 'block';
+
+          fileSelect.onchange = function () {
+            const selectedFile = videoFiles[fileSelect.value];
+            selectedFile.renderTo('video', {
+              autoplay: true,
+              controls: true,
+              onDone: () => {
+                loading.style.display = 'none';
+                video.style.display = 'block';
+              }
+            });
+          };
+        } else if (videoFiles.length === 1) {
+          videoFiles[0].renderTo('video', {
+            autoplay: true,
+            controls: true,
+            onDone: () => {
+              loading.style.display = 'none';
+              video.style.display = 'block';
+            }
+          });
+        } else {
+          alert('No video files found in the torrent');
+          loading.style.display = 'none';
+        }
+      }).on('error', function (err) {
+        alert(`Error: ${err.message}`);
+        loading.style.display = 'none';
+      });
+    }
+  </script>
+</body>
+</html>
